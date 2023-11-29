@@ -1,5 +1,5 @@
 <h1>MazeGen</h1>
-Maze generator that genetic algorithm. Made in Unity/C# (2021.3.9f1). 
+Maze generator that uses genetic algorithm. Made in Unity/C# (2021.3.9f1). 
 <br>
 Have fun :)
 <br>
