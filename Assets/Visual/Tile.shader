@@ -1,12 +1,15 @@
 ﻿Shader "Unlit/Tile"{
     Properties{
         _MainTex("Albedo (RGB)", 2D) = "white" {}   //unused, needs to run in webgl?
-        _Tile("tile",                   Int)    = 0
-        _highlighted("highlight",       Int)    = 0
-        _uiElement("uiElement",         Int)    = 0
-		_stone_pos("stone pos",         Vector) = (0,0,0,0)
-        _switch_pos("switch pos",       Vector) = (0,0,0,0) 
-        _switch_radius("switch radius", Float)  = 0 
+        _Tile("tile",                           Int)    = 0
+        _Tile_ground("tile ground",             Int)    = 0
+        _Tile_content("tile content",           Int)    = 0
+        _Tile_contentInfo("tile contentInfor",  Int)    = 0
+        _highlighted("highlight",               Int)    = 0
+        _uiElement("uiElement",                 Int)    = 0
+		_stone_pos("stone pos",                 Vector) = (0,0,0,0)
+        _switch_pos("switch pos",               Vector) = (0,0,0,0) 
+        _switch_radius("switch radius",         Float)  = 0 
     }
 
     SubShader{
@@ -31,6 +34,9 @@
             };
 
             int			_Tile;
+            int			_Tile_ground;
+            int			_Tile_content;
+            int			_Tile_contentInfo;
             int			_highlighted	= 0;
             int			_uiElement		= 0;
 			float4		_stone_pos      = 0;
@@ -50,26 +56,27 @@
             #define M_HALF_PI   1.57079632679
 
             //defines copy pasted from C#
-            #define offset_Content      3
-            #define offset_ContentInfo  6
+            #define offset_Content      3U
+            #define offset_ContentInfo  6U
 
-            #define section_Ground      7
-            #define section_Content     (7  << offset_Content)
-            #define section_ContentInfo (3  << offset_ContentInfo)
+            #define section_Ground      7U
+            #define section_Content     (7U  << offset_Content)
+            #define section_ContentInfo (3U  << offset_ContentInfo)
 
-            #define GROUND_NONE         0
-            #define GROUND_ICE          1
-            #define GROUND_BRIDGE       2
-            #define GROUND_RED          3
+            #define GROUND_NONE         0U
+            #define GROUND_ICE          1U
+            #define GROUND_BRIDGE       2U
+            #define GROUND_RED          3U
 
-            #define Content_None         0 << offset_Content
-            #define Content_Switch       1 << offset_Content
-            #define Content_Stone        2 << offset_Content
-            #define Content_Shift        3 << offset_Content
+            #define Content_None         0U << offset_Content
+            #define Content_Switch       1U << offset_Content
+            #define Content_Stone        2U << offset_Content
+            #define Content_Shift        3U << offset_Content
 
-            #define getGround(tile)         (tile & section_Ground)
-            #define getContent(tile)        (tile & section_Content)
-            #define getContentInfo(tile)    ((tile & section_ContentInfo)>>offset_ContentInfo)
+            uint getGround()        { return _Tile_ground;  }  
+            uint getContent()       { return _Tile_content; }  
+            uint getContentInfo()   { return _Tile_contentInfo; }
+
 
 
 			float2 rotate(float2 p, float angle){
@@ -91,7 +98,7 @@
 
 
             float getContentMask(float2 uv, uint tile) {
-                switch (getContent(tile)) {
+                switch (getContent()) {
                 case Content_None:
                     break;
 
@@ -109,7 +116,7 @@
 
                 case Content_Shift:
                     float2 pos = -2 * (uv - 0.5f);
-                    pos = rotate(pos, M_HALF_PI * (1 + getContentInfo(tile)));
+                    pos = rotate(pos, M_HALF_PI * (1 + getContentInfo()));
                     pos *= 0.5f;
                     pos.x -= 0.2;
 
@@ -131,7 +138,7 @@
 
             fixed4 getTileColor(v2f i){
                 float    content     = getContentMask(i.uv, _Tile);
-
+                
                 //ground
                 float4 ground_white = fixed4(.83, .89, .84, 1);
                 float4 ground_black = fixed4(.1,.1,.1,1)  ;
@@ -152,7 +159,7 @@
                     
                 }
 
-                switch (getGround(_Tile)) {
+                switch (getGround()) {
                     case GROUND_NONE:       return lerp(ground_black, ground_white, content);
                     case GROUND_ICE:        return lerp(ground_white, ground_black, content);
                     case GROUND_RED:        return fixed4(1, 0, 0, 1);
@@ -171,7 +178,7 @@
 
             fixed4 frag(v2f i) : SV_Target{
                 fixed4 tileColor = getTileColor(i);
-                
+
                 if(_uiElement != 0){
                     if (_highlighted != 0) {
                         if (abs(i.uv.x - 0.5f) > 0.45f || abs(i.uv.y - 0.5f) > 0.45f)

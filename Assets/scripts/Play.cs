@@ -293,6 +293,9 @@ public class Play : MonoBehaviour {
                 GameObject go_tile = Instantiate(prefabTile, gObjParentMaze.transform);
                 go_tile.transform.position = new Vector3(i, 0, j);
                 go_tile.GetComponent<MeshRenderer>().material.SetInt("_Tile", tiles[i, j]);
+                go_tile.GetComponent<MeshRenderer>().material.SetInt("_Tile_ground", (int)tiles[i, j].ground);
+                go_tile.GetComponent<MeshRenderer>().material.SetInt("_Tile_content", (int)tiles[i, j].content);
+                go_tile.GetComponent<MeshRenderer>().material.SetInt("_Tile_contentInfo", tiles[i, j].contentInfo);
                 go_tile.GetComponent<MeshRenderer>().material.SetInt("_highlighted", 0);
                 go_tile.GetComponent<MeshRenderer>().material.SetFloat("_posStoneX", 0);
                 go_tile.GetComponent<MeshRenderer>().material.SetFloat("_posStoneY", 0);

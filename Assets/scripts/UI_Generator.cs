@@ -1,4 +1,8 @@
 
+#if !UNITY_WEBGL
+    using System.Threading;
+#endif
+
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -40,16 +44,24 @@ public class UI_Generator : MonoBehaviour {
     public GridLayoutGroup genStats;    // contains 8x TMP_text
     public TMP_Text text_generatorInfo;
 
+    //quit button
+    public Button button_quit;
+
     //Error message
     public TMP_Text ui_text_error;
 
     //private
-    private GeneratorInput genInput = Generator.generatorInput;
-
+    private static GeneratorInput genInput = new GeneratorInput();
+    private Generator generator;
+    
+    #if !UNITY_WEBGL
+        private Thread thread;
+    #endif
 
     void Start() {
-        Generator.getInstance().generatorState = Generator.GeneratorState.Idle;
-
+        #if UNITY_WEBGL
+            button_quit.gameObject.SetActive(false); 
+        #endif
         Application.targetFrameRate = 60;
 
         // Default values: Generator
@@ -178,9 +190,15 @@ public class UI_Generator : MonoBehaviour {
 
 
 
+
     public void onGeneratorButtonPress() {
-        if (Generator.getInstance().generatorState == Generator.GeneratorState.Idle) {
+        if(generator == null) {
             text_generatorInfo.gameObject.SetActive(false);
+
+            // make sure all input fields have been processed
+            var inputFields = root.GetComponentsInChildren<TMP_InputField>();
+            foreach (var inputField in inputFields)
+                inputField.onEndEdit.Invoke(inputField.text);
 
             //validateInput
             string errorMessage = genInput.validate();
@@ -188,20 +206,21 @@ public class UI_Generator : MonoBehaviour {
             if (errorMessage != "")
                 return;
 
-            // make sure all input fields have been processed
-            var inputFields = root.GetComponentsInChildren<TMP_InputField>();
-            foreach (var inputField in inputFields)
-                inputField.onEndEdit.Invoke(inputField.text);
-
             genStats.gameObject.SetActive(true);
 
             enableUI(false);
             (button_generate.transform.GetChild(0)).GetComponent<TMP_Text>().text = "Continue";
-            Generator.startGeneration(genInput);
-        
-        }else if(Generator.getInstance().generatorState == Generator.GeneratorState.Generating){
-            Generator.getInstance().generatorState = Generator.GeneratorState.EndingPrematurly;
 
+            generator = new Generator(genInput);
+            #if !UNITY_WEBGL
+                thread = new Thread(new ThreadStart(generator.evolve));
+                thread.Start();
+            #endif
+
+        }
+        else if(generator.generatorState == Generator.GeneratorState.Generating){
+            generator.generatorState = Generator.GeneratorState.EndingPrematurly;
+           
             //ui
             genStats.gameObject.SetActive(false);
             enableUI(true);
@@ -215,6 +234,7 @@ public class UI_Generator : MonoBehaviour {
 
 
     void Update(){
+
         if (Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Return))
             onGeneratorButtonPress();
 
@@ -235,47 +255,69 @@ public class UI_Generator : MonoBehaviour {
                 }
             }
         }
+        
+        if (generator != null) { 
+            switch (generator.generatorState) {
+                case Generator.GeneratorState.EndingPrematurly:
+                    goto case Generator.GeneratorState.Generating;
+                
+                case Generator.GeneratorState.Generating:
+                    #if UNITY_WEBGL
+                        if(!generator.nextGeneration())
+                            generator.endEvolution();
+                    #endif
 
-        Generator generator = Generator.getInstance();
+                    var fitness = generator.highestFitness == Maze.UNSOLVABLE ? 0 : generator.highestFitness;
+                    genStats.transform.GetChild(1).GetComponent<TMP_Text>().text = fitness + "/" + generator.generatorInput.minFitness;
+                    genStats.transform.GetChild(3).GetComponent<TMP_Text>().text = (int)generator.passedTime() + "/" + generator.generatorInput.maxTime;
+                    genStats.transform.GetChild(5).GetComponent<TMP_Text>().text = generator.iteration + "/" + generator.generatorInput.nbrGenerations;
+                    genStats.transform.GetChild(7).GetComponent<TMP_Text>().text = generator.currentIndividual + "/" + generator.generatorInput.nbrIndividuals;
+                    break;
 
-
-        switch (generator.generatorState) {
-            case Generator.GeneratorState.Generating:
-            case Generator.GeneratorState.EndingPrematurly:
-                var fitness = generator.highestFitness == Maze.UNSOLVABLE ? 0 : generator.highestFitness;
-                genStats.transform.GetChild(1).GetComponent<TMP_Text>().text = fitness + "/" + Generator.generatorInput.minFitness;
-                genStats.transform.GetChild(3).GetComponent<TMP_Text>().text = (int)generator.passedTime() + "/" + Generator.generatorInput.maxTime;
-                genStats.transform.GetChild(5).GetComponent<TMP_Text>().text = generator.iteration + "/" + Generator.generatorInput.nbrGenerations;
-                genStats.transform.GetChild(7).GetComponent<TMP_Text>().text = generator.currentIndividual + "/" + Generator.generatorInput.nbrIndividuals;
-                break;
-            case Generator.GeneratorState.CleaningUp:
-                text_generatorInfo.text = "cleaning up...";
-                text_generatorInfo.gameObject.SetActive(true);
-                genStats.gameObject.SetActive(false);
-                break;
-            case Generator.GeneratorState.Done:
-                genStats.gameObject.SetActive(false);
-                generator.generatorState = Generator.GeneratorState.Idle;
-                if (generator.highestFitness == Maze.UNSOLVABLE) {
-                    text_generatorInfo.text = "no maze found";
+                case Generator.GeneratorState.CleaningUp:
+                    text_generatorInfo.text = "cleaning up...";
                     text_generatorInfo.gameObject.SetActive(true);
-                    button_generate.interactable = true;
-                    (button_generate.transform.GetChild(0)).GetComponent<TMP_Text>().text = "Generate";
-                    enableUI(true); 
-                }else{ 
-                    SceneManager.LoadScene ("Play");
-                }
-                break;
-            case Generator.GeneratorState.Solving:
-                text_generatorInfo.text = "solving...";
-                text_generatorInfo.gameObject.SetActive(true);
-                genStats.gameObject.SetActive(false);
-                break;
-            case Generator.GeneratorState.Idle:
-                break;
-            default:
-                Debug.Assert(false);
-                break;
+                    genStats.gameObject.SetActive(false);
+                    break;
+               
+                case Generator.GeneratorState.Done:
+                    genStats.gameObject.SetActive(false);
+                    generator.generatorState = Generator.GeneratorState.Idle;
+ 
+                    #if !UNITY_WEBGL
+                        thread = null;
+                    #endif
+                   
+                    if (generator.highestFitness == Maze.UNSOLVABLE) {
+                        text_generatorInfo.text = "no maze found";
+                        text_generatorInfo.gameObject.SetActive(true);
+                        button_generate.interactable = true;
+                        (button_generate.transform.GetChild(0)).GetComponent<TMP_Text>().text = "Generate";
+                        enableUI(true);
+                        generator = null;
+                    }else{ 
+                        generator = null;
+                        SceneManager.LoadScene ("Play");
+                    }
+                    
+                    break;
+
+                case Generator.GeneratorState.Solving:
+                    text_generatorInfo.text = "solving...";
+                    text_generatorInfo.gameObject.SetActive(true);
+                    genStats.gameObject.SetActive(false);
+                    break;
+
+                case Generator.GeneratorState.Idle:
+                    #if UNITY_WEBGL
+                        generator.startEvolution();
+                    #endif
+                    break;
+
+                default:
+                    Debug.Assert(false);
+                    break;
+            }
         }
 
 

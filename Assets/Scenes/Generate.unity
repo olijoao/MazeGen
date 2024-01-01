@@ -1734,6 +1734,7 @@ MonoBehaviour:
   button_generate: {fileID: 188471835}
   genStats: {fileID: 1425148521}
   text_generatorInfo: {fileID: 651301121}
+  button_quit: {fileID: 755372324}
   ui_text_error: {fileID: 1773563362}
 --- !u!4 &545888025
 Transform:
@@ -1961,7 +1962,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 1
     m_VerticalOverflow: 1
     m_LineSpacing: 1
-  m_Text: v1.0
+  m_Text: v1.1
 --- !u!222 &632545645
 CanvasRenderer:
   m_ObjectHideFlags: 0

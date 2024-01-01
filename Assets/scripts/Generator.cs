@@ -1,5 +1,4 @@
-﻿using System.Threading;
-using UnityEngine;
+﻿using UnityEngine;
 using System;
 using System.Collections.Generic;
 
@@ -29,6 +28,7 @@ public class GeneratorInput {
     public bool         spawn_Content_Shift     = false;
     public bool         spawn_Content_Stone     = false;
 
+
     // returns empty string if no error
     public string validate() {
         string errorMessage = "";
@@ -55,80 +55,46 @@ public class GeneratorInput {
 
 
 
+
+
 public class Generator{
     public const int maxNbrVisitedSteps  = 100000;
 
     //static
     public static   System.Random           rand                = new System.Random();  //in case I want to test with fixed seed
     public static   RandomTileGenerator     randTileGen;
-    public static   GeneratorInput          generatorInput = new GeneratorInput();
-    private static  Thread                  thread;
-
-    //singleton
-    private static Generator instance = new Generator();
-    public static Generator getInstance(){ 
-        return instance;
-    }
 
     public enum GeneratorState { Idle, Generating, EndingPrematurly, CleaningUp, Solving, Done };
     public GeneratorState   generatorState;
     private List<Maze>      mazes;       
     public int              iteration;
     private long            startTime;
+    public readonly GeneratorInput generatorInput;
 
     //stats to display to the user
     public float    highestFitness;  //only used for ui,  during iteration mazes[0] is not the highest until list gets sorted at the end
     public int      currentIndividual;
 
+
             
-    private Generator(){ /*...*/}
-        
-    public static void startGeneration(GeneratorInput generatorInput){
-        Generator.generatorInput = generatorInput;
-        thread = new Thread(new ThreadStart(evolve));
-        thread.Start();
-    }
-
-
-    static void evolve(){
-        var instance = getInstance();
-        instance.restart();
-        try{
-            while (instance.nextGeneration()) {
-                /*..*/;
-            }
-
-            var bestMaze = instance.mazes[0];
-
-            if (generatorInput.isCleaningUp) {
-                instance.generatorState = GeneratorState.CleaningUp;
-                Play.maze = CleanUp.cleanUp(generatorInput, bestMaze);
-            }else
-                Play.maze = bestMaze;
-
-            instance.generatorState = GeneratorState.Solving;
-            Play.solution = new Solution(ref Play.maze);
-
-            instance.generatorState = GeneratorState.Done;
-            thread = null;
-        }catch (System.AggregateException e){ 
-            Debug.LogError(e);
-        }
-    }
-
-
-    public void restart(){
-        generatorState = GeneratorState.Generating;
+    public Generator(GeneratorInput input){
+        this.generatorInput = input;
+        generatorState = GeneratorState.Idle;
         iteration = 0;
         currentIndividual = 0;
         highestFitness = Maze.UNSOLVABLE;
 
         randTileGen = new RandomTileGenerator(generatorInput);
-
-        startTime = DateTime.Now.Ticks;
         mazes = new List<Maze>();
+    }
 
-        for (int i=0; i< generatorInput.nbrIndividuals; i++) {
+
+
+    public void startEvolution(){
+        startTime = DateTime.Now.Ticks;
+        generatorState = GeneratorState.Generating;
+        //initial mazes
+        for (int i = 0; i < generatorInput.nbrIndividuals; i++){    
             currentIndividual = i;
             var maze = new Maze(generatorInput, randTileGen, rand);
             var fitness = maze.getFitness();  //most time consuming part, calculating it here makes aborting early more accurate
@@ -138,16 +104,41 @@ public class Generator{
             if (fitness > highestFitness)
                 highestFitness = fitness;
 
-            if (generatorState == GeneratorState.EndingPrematurly 
-            || fitness >= generatorInput.minFitness || passedTime() >= generatorInput.maxTime){
+            if (generatorState == GeneratorState.EndingPrematurly
+            || fitness >= generatorInput.minFitness || passedTime() >= generatorInput.maxTime)      
+            {
                 mazes.Sort(new MazeSortHelper()); //uses maze.getFitness()
                 return;
             }
         }
-
         mazes.Sort(new MazeSortHelper());
     }
-    
+
+
+    public void endEvolution(){
+        var bestMaze = mazes[0];
+
+        if (generatorInput.isCleaningUp) {
+            generatorState = GeneratorState.CleaningUp;
+            Play.maze = CleanUp.cleanUp(generatorInput, bestMaze);
+        }else
+            Play.maze = bestMaze;
+
+        generatorState = GeneratorState.Solving;
+        Play.solution = new Solution(ref Play.maze);
+
+        generatorState = GeneratorState.Done;
+    }
+
+
+    public void evolve(){
+        startEvolution();
+        
+        while (nextGeneration()) {
+            /*..*/;
+        }
+        endEvolution();
+    }
 
 
     public float passedTime(){ 
@@ -161,8 +152,6 @@ public class Generator{
     public int getIteration(){ 
         return iteration;
     }
-
-
 
     
 
@@ -202,9 +191,9 @@ public class Generator{
     
     public class MazeSortHelper: IComparer<Maze>{
         public int Compare(Maze a, Maze b) {
-            if (a.getFitness() > b.getFitness())              
-                 return -1;
-            return 1;
+            if (a.getFitness() > b.getFitness())
+                return -1;
+            return 1;
         }
     }
 
