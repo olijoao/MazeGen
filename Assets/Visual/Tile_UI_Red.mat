@@ -99,7 +99,7 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     - _doorAngle: 0
-    - _highlighted: 1
+    - _highlighted: 0
     - _posStoneX: 0
     - _posStoneY: 0
     - _rotation: 0

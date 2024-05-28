@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -17,12 +18,12 @@ public class Play : MonoBehaviour {
     public GameObject prefabTile;
     
     //UI
-    public RectTransform ui_solutionBody;
+    public RectTransform ui_panelActions_solution;
+    public RectTransform ui_panelActions_play;
     public Text ui_winCondition;
     public Text ui_stepCount;
     public Canvas canvas;
 
-    public Button button_solutionToggle;
     public Button button_solution_first;
     public Button button_solution_previous;
     public Button button_solution_play;
@@ -35,6 +36,7 @@ public class Play : MonoBehaviour {
     public Color color_mode_solution;
     public Color color_mode_play;
 
+    public Toggle_Switch toggleButton_switchmode;
     // sounds
     public AudioClip audio_win;
     public AudioClip audio_lightSwitch;
@@ -63,7 +65,8 @@ public class Play : MonoBehaviour {
     void Awake() {
         Debug.Assert(solution != null);
         Camera.main.backgroundColor = (mode_solution) ? color_mode_solution : color_mode_play;
-        ui_solutionBody.gameObject.SetActive(mode_solution);
+        ui_panelActions_solution.gameObject.SetActive(mode_solution);
+        ui_panelActions_play.gameObject.SetActive(!mode_solution);
     }
 
 
@@ -84,8 +87,6 @@ public class Play : MonoBehaviour {
                 updateSolutionButtons();
                 UpdateUI();
             });
-            if (Input.GetKeyDown(KeyCode.H) || Input.GetKeyDown(KeyCode.Backspace) || Input.GetKeyDown(KeyCode.Escape))
-                toogleShowingSolution();
 
         //animation
         }else if (history.Count > 1
@@ -109,8 +110,6 @@ public class Play : MonoBehaviour {
                 Undo();
             else if (Input.GetKeyDown(KeyCode.Backspace) || Input.GetKeyDown(KeyCode.Escape))
                 loadGenerateScene();
-            else if(Input.GetKeyDown(KeyCode.H))
-                toogleShowingSolution();
         }   
     }
 
@@ -142,7 +141,7 @@ public class Play : MonoBehaviour {
 
     public void UpdateUI(){
         //winCondition
-        State state             = mode_solution ? solution.currentState() : history_current();
+        State state = mode_solution ? solution.currentState() : history_current();
         
         bool solved;
         var winCondition = WinCondition.winConditions[maze.getWinCondition()];
@@ -194,8 +193,8 @@ public class Play : MonoBehaviour {
 
     public void toogleShowingSolution() {
         mode_solution = !mode_solution;
-        ui_solutionBody.gameObject.SetActive(mode_solution);
-        button_solutionToggle.GetComponent<Image>().color = (mode_solution) ? new Color(1, 0.6f, 0) : Color.white;
+        ui_panelActions_solution.gameObject.SetActive(mode_solution);
+        ui_panelActions_play.gameObject.SetActive(!mode_solution);
         Camera.main.backgroundColor = (mode_solution) ? color_mode_solution : color_mode_play;
         State currentState = mode_solution?solution.currentState():history_current();
         createGameObjects(currentState);
@@ -262,7 +261,7 @@ public class Play : MonoBehaviour {
         button_solution_next.interactable       =
         button_solution_last.interactable       = solution.GetIndex() < solution.StatesCount() - 1;
 
-        button_solution_play.GetComponentInChildren<Text>().text = solution.IsPlaying() ? "||" : ">";
+        button_solution_play.GetComponentInChildren<TextMeshProUGUI>().text = solution.IsPlaying() ? "||" : ">";
     }
 
 
@@ -292,7 +291,6 @@ public class Play : MonoBehaviour {
             for (int j = 0; j < size.y; j++){
                 GameObject go_tile = Instantiate(prefabTile, gObjParentMaze.transform);
                 go_tile.transform.position = new Vector3(i, 0, j);
-                go_tile.GetComponent<MeshRenderer>().material.SetInt("_Tile", tiles[i, j]);
                 go_tile.GetComponent<MeshRenderer>().material.SetInt("_Tile_ground", (int)tiles[i, j].ground);
                 go_tile.GetComponent<MeshRenderer>().material.SetInt("_Tile_content", (int)tiles[i, j].content);
                 go_tile.GetComponent<MeshRenderer>().material.SetInt("_Tile_contentInfo", tiles[i, j].contentInfo);

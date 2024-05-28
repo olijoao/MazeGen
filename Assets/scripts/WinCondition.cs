@@ -57,7 +57,7 @@ public class WinCondition {
             (GeneratorInput g) => {
                 List<string> errors = new();
                 if(!g.spawn_Content_Stone)      errors.Add("needs to spawn stones.");
-                if(g.width < 5 && g.height < 5) errors.Add("needs at least one of the dimensions to be 3 or higher.");
+                if(g.width < 3 && g.height < 3) errors.Add("needs at least one of the dimensions to be 3 or higher.");
                 if(errors.Count == 0)
                     return null;
                 return errors;
@@ -74,10 +74,21 @@ public class WinCondition {
                 if(g.spawn_Content_Stone) return null;
                 return new List<string>{"needs to spawn stones."};
             },
-            (State s) => { return s.atLeastNTiles(1, (Tile t) => {return t.content == Content.Stone;}); }),
+            (State s) => { return s.atLeastNTiles(2, (Tile t) => {return t.content == Content.Stone;}); }),
+        
+
+        new WinCondition(
+            "No touching Stones",
+            "no stones (of both colors) can be orthogonally connected to another stone",
+            (State s) => { return !s.anyStonesOrthogonallyTouching(); },
+            (GeneratorInput g) => {
+                if(g.spawn_Content_Stone) return null;
+                return new List<string>{"needs to spawn stones."};
+            },
+            (State s) => { return s.atLeastNTiles(2, (Tile t) => {return t.content == Content.Stone;}); }),
 
 
-         new WinCondition(
+        new WinCondition(
             "Symmetry",
             "make maze either horizontally or vertically symmetrical (player included)",
             (State s) => {
@@ -90,6 +101,23 @@ public class WinCondition {
                     errors.Add("needs to spawn at least one of the tiles \"Light switch\", \"Stone\" or \"Shift\".");
                 if(g.width%2 == 0 && g.height%2==0)
                     errors.Add("needs at least one odd dimension.");
+                return errors.Count==0?null:errors;
+            }),
+            //no usefull precondition
+
+
+        new WinCondition(
+            "Uniform ground",
+            "make every ground the same color",
+            (State s) => {
+                return s.allGroundsSameColor();
+            },
+            (GeneratorInput g) => {
+                List<string> errors = new List<string>();
+                if(!g.spawn_Content_Switch)
+                    errors.Add("needs to spawn \"Light switch.\"");
+                if(g.width<3 || g.height<3)
+                    errors.Add("both dimensions need to be at least 3 or higher.");
                 return errors.Count==0?null:errors;
             }),
             //no usefull precondition

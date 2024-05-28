@@ -1,0 +1,12 @@
+
+version 1.3
+	bugfix: fixed stone animation
+	bugfix: precondition of win condition "3 stones in a row" was wrong 
+	added win condition: "no touching stones"
+	added win condition: "uniform ground"
+	various ui changes
+	added changelog :)
+
+
+
+

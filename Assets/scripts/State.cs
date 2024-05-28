@@ -316,7 +316,15 @@ public struct State {
         return false;
     }
 
+    public bool allGroundsSameColor(){
+        Ground firstGround = tiles[0,0].ground;
+        foreach (Tile t in tiles) 
+            if(t.ground != firstGround)
+                return false;
+        return true;
+    }
 
+ 
     // check if any tile satisfy predicate
     public bool anyTile(System.Func<Tile, bool> predicate){
         foreach (Tile t in tiles) 
@@ -375,8 +383,23 @@ public struct State {
             dfs_singleStoneIsland(x+d.x, y+d.y, visited);
     }
 
+
+    public bool anyStonesOrthogonallyTouching(){
+        var bounds = getBounds();
+         for (int i = 0; i < bounds.x; i++){
+            for (int j = 0; j < bounds.y; j++){
+                if ((tiles[i, j].content == Content.Stone)) {
+                    if(insideBounds(i-1, j) && tiles[i-1, j].content == Content.Stone)
+                        return true; 
+                    if(insideBounds(i, j-1) && tiles[i, j-1].content == Content.Stone)
+                        return true;
+                }  
+            }
+        }
+        return false;
+    }
  
- 
+
     public bool isSymetrical(){
         return isHorizontalSymetrical() 
             || isVerticalSymetrical();

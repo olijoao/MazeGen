@@ -1,7 +1,6 @@
 ﻿Shader "Unlit/Tile"{
     Properties{
         _MainTex("Albedo (RGB)", 2D) = "white" {}   //unused, needs to run in webgl?
-        _Tile("tile",                           Int)    = 0
         _Tile_ground("tile ground",             Int)    = 0
         _Tile_content("tile content",           Int)    = 0
         _Tile_contentInfo("tile contentInfor",  Int)    = 0
@@ -33,7 +32,6 @@
                 float4 vertex : SV_POSITION;
             };
 
-            int			_Tile;
             int			_Tile_ground;
             int			_Tile_content;
             int			_Tile_contentInfo;
@@ -134,10 +132,8 @@
             }
 
 
-
-
             fixed4 getTileColor(v2f i){
-                float    content     = getContentMask(i.uv, _Tile);
+                float content = getContentMask(i.uv, getContent());
                 
                 //ground
                 float4 ground_white = fixed4(.83, .89, .84, 1);

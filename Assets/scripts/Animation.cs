@@ -85,6 +85,8 @@ public class Animator {
 
         float t = Mathf.Clamp(t_animation - (int)t_animation, 0.0f, 1.0f);
         float t_last = Mathf.Clamp(t_animation_last - (int)t_animation_last, 0.0f, 1.0f);
+        if (lastAnimationIndex < currentAnimationIndex)
+            t_last = 0.0f;
         foreach (Animation animation in animations[currentAnimationIndex]) {
             animate_internal(t, t_last, animation, step, gMazeTiles, gObjPlayer);
         }
@@ -141,10 +143,8 @@ public class Animator {
                 gMazeTiles[pos.x, pos.y].GetComponent<MeshRenderer>().material.SetVector("_stone_pos", new Vector4(stonePosOldTile.x, stonePosOldTile.y, 0,0));
 
                 //move in into next
-                Tile tileNewPos = new Tile(gMazeTiles[posNext.x, posNext.y].GetComponent<MeshRenderer>().material.GetInt("_Tile"));
-                tileNewPos.content = Content.Stone;
-                tileNewPos.contentInfo = 0;
-                gMazeTiles[posNext.x, posNext.y].GetComponent<MeshRenderer>().material.SetInt("_Tile", tileNewPos);
+                gMazeTiles[posNext.x, posNext.y].GetComponent<MeshRenderer>().material.SetInt("_Tile_content", (int)Content.Stone);
+                gMazeTiles[posNext.x, posNext.y].GetComponent<MeshRenderer>().material.SetInt("_Tile_contentInfo", 0);
                 gMazeTiles[posNext.x, posNext.y].GetComponent<MeshRenderer>().material.SetVector("_stone_pos", new Vector4(stonePosNewTile.x, stonePosNewTile.y, 0,0));
                 break;
             }
@@ -152,7 +152,7 @@ public class Animator {
 
             case Animation.Type.Shift: {
                 //sound
-                if(t01_animation_last < 0.3 && 0.3f <= t01_animation ) {
+                if(t01_animation_last <= 0.0 && 0.0f <= t01_animation ) {
                     var audioSource = Camera.main.gameObject.GetComponent<AudioSource>();
                     audioSource.PlayOneShot(GameObject.Find("Main").GetComponent<Play>().audio_shift);
                 }

@@ -172,7 +172,7 @@ public class Generator{
             }
 
             var maze = new Maze(selectMazeForCrossover(), selectMazeForCrossover(), randTileGen, rand);
-            var fitness = maze.getFitness();  //most time consuming part, calculating it here makes aborting on (passedTime() >= maxTime) more accurate
+            var fitness = maze.getFitness();  //most time consuming part, calculating it here makes aborting on (passedTime() >= maxTime) more accurate, since Maze caches the result
 
             // save highest fitness so UI can display it while evolution is running
             if (fitness > highestFitness)
